@@ -16,12 +16,13 @@ body {
   font-family: 'Titillium Web', sans-serif;
 }
 
-.title {
+h1.title {
   text-align: center;
   font-size: 58px;
   padding: 0px;
   margin: 20px;
   color: #2C3E50;
+  text-shadow: 3px 3px 0px rgba(0,0,0,0.2);
 }
 
 .application-container {
@@ -33,6 +34,7 @@ body {
   flex-direction: column;
   position: relative;
   background: #efefef;
+  box-shadow: 0 19px 38px rgba(0,0,0,0.30), 0 15px 12px rgba(0,0,0,0.22);
 }
 
 .winner-overlay {
@@ -52,8 +54,9 @@ body {
 }
 
 .winner-overlay .winner-title {
-  color: #fff;
+  color: #fff!important;
   font-weight: bold;
+  text-shadow: 3px 3px 0px rgba(0,0,0,0.2);
 }
 
 .winner-overlay .btn {
@@ -93,6 +96,7 @@ body {
   line-height: 40px;
   text-align: center;
   font-size: 20px;
+  text-shadow: 3px 3px 0px rgba(0,0,0,0.2);
 }
 
 .game-container .row .cell {
@@ -119,11 +123,13 @@ body {
 
 .game-container .row .cell:hover {
   background: #fff;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23);
 }
 
 .game-container .row .marked {
   cursor: not-allowed;
   pointer-events: none;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23);
 }
 
 .game-container .row .marked-cross, .game-container .row .marked-cross:hover {

@@ -189,7 +189,7 @@ renderWinenrOverlay model =
                     ,   renderRestartButton model
                     ]
                 Winner(CrossPlayer) -> 
-                    div [ class "winner title" ] [ 
+                    div [ class "winner-title" ] [ 
                         text "Cross wins"
                     ,   renderRestartButton model
                     ]
