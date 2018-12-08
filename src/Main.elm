@@ -182,11 +182,13 @@ renderHeader: Model -> Html Msg
 renderHeader model = 
     div [ class "header" ] [ 
                 text (
-                    "Circle " 
-                    ++ String.fromInt(model.pointsCircle)
+                    (playerName CirclePlayer model)
+                    ++ " "
+                    ++ (String.fromInt model.pointsCircle)
                     ++ " - " 
-                    ++ String.fromInt(model.pointsCross) 
-                    ++ " Cross"
+                    ++ (String.fromInt model.pointsCross) 
+                    ++ " "
+                    ++ (playerName CrossPlayer model)
                 ) 
             ]
 
@@ -200,14 +202,9 @@ renderGameEndedOverlay model =
                         text "Draw"
                     ,   renderRestartButton model
                     ]
-                Winner(CirclePlayer) ->
+                Winner player ->
                     div [ class "winner-title" ] [ 
-                        text "Circle Wins" 
-                    ,   renderRestartButton model
-                    ]
-                Winner(CrossPlayer) -> 
-                    div [ class "winner-title" ] [ 
-                        text "Cross wins"
+                        text ((playerName player model) ++ " Wins")
                     ,   renderRestartButton model
                     ]
                 Playing ->
@@ -249,6 +246,14 @@ renderCell x y cell =
                 CirclePlayer ->
                     div [ class "cell marked marked-circle" ] [ text "O"]
 
+playerName : Player -> Model -> String
+playerName player model =
+    case player of 
+        CirclePlayer ->
+            "Circle"
+        CrossPlayer -> 
+            "Cross"
+        
 
 ---- PROGRAM ----
 
