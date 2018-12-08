@@ -12,7 +12,7 @@ body {
   justify-content: center;
   height: 100%;
   width: 100%;
-  background: #FFFFFF;
+  background: #EEEEEE;
   font-family: 'Titillium Web', sans-serif;
 }
 
@@ -20,13 +20,14 @@ h1.title {
   text-align: center;
   font-size: 58px;
   padding: 0px;
-  margin: 20px;
-  color: #2C3E50;
+  margin-bottom: 20px;
+  margin-top: -90px;
+  color: #113A52;
   text-shadow: 3px 3px 0px rgba(0,0,0,0.2);
 }
 
 .application-container {
-  width: 600px;
+  width: 500px;
 }
 
 .game-container {
@@ -66,9 +67,13 @@ h1.title {
   font-size: 22px;
   color: white;
   text-align: center;
-  background: #6DBCDB;
+  background: #00C3B6;
   border: 0;
   cursor: pointer;
+}
+
+.winner-overlay .btn:hover {
+  box-shadow: 0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23);
 }
 
 .winner-overlay .btn:focus {
@@ -91,7 +96,7 @@ h1.title {
 .header {
   text-align: center;
   height: 40px;
-  background: #2C3E50;
+  background: #113A52;
   color: #fff;
   line-height: 40px;
   text-align: center;
@@ -101,11 +106,11 @@ h1.title {
 
 .game-container .row .cell {
   flex: 1;
-  height: 200px;
+  height: 150px;
   margin: 10px;
   margin-right: 0px;
   margin-bottom: 0px;
-  line-height: 200px;
+  line-height: 150px;
   text-align: center;
   font-size: 120px;
   color: #fff;
@@ -133,11 +138,11 @@ h1.title {
 }
 
 .game-container .row .marked-cross, .game-container .row .marked-cross:hover {
-  background: #FC4349;
-  border-color: #FC4349;
+  background: #00C3B6;
+  border-color: #00C3B6;
 }
 
 .game-container .row .marked-circle, .game-container .row .marked-circle:hover {
-  background: #2C3E50;
-  border-color: #2C3E50;
+  background: #113A52;
+  border-color: #113A52;
 }

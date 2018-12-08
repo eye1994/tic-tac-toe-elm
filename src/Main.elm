@@ -1,5 +1,3 @@
--- @TODO implement draw state
-
 module Main exposing (..)
 
 import Browser
@@ -57,7 +55,7 @@ update msg model =
         Mark(x, y) ->
             let 
                 nextMatrix = (markCell x y model.matrix model.current)
-                nextGameState = checkWinner nextMatrix
+                nextGameState = computeNextState nextMatrix
             in
                 ({
                     model | 
@@ -86,15 +84,25 @@ markCell x y matrix player =
     in
         Array.set x rowUpdated matrix
 
-checkWinner: Array.Array(Array.Array(Square)) -> GameState
-checkWinner matrix  =
+computeNextState: Array.Array(Array.Array(Square)) -> GameState
+computeNextState matrix  =
     if (isWinning matrix CirclePlayer) then
         Winner(CirclePlayer)
     else if (isWinning matrix CrossPlayer) then 
         Winner(CrossPlayer)
+    else if (isDraw matrix) then
+        Draw
     else 
         Playing
-    -- @Todo Draw case
+
+isDraw: Array.Array(Array.Array(Square)) -> Bool
+isDraw matrix = 
+    let 
+        excludeEmpty = Array.filter(\c -> (c /= Empty))
+        rows = matrix |> Array.map(\r -> (excludeEmpty r))
+        emptyRows = rows |> Array.filter(\r -> ((Array.length r) == 3))
+    in
+        (Array.length emptyRows) == 3
 
 isWinning: Array.Array(Array.Array(Square)) -> Player -> Bool
 isWinning matrix player = 
@@ -159,7 +167,20 @@ view : Model -> Html Msg
 view model =
     div [ class "application-container" ]
         [   h1 [ class "title" ] [ text "Tic Tac Toe" ]
-        ,   div [ class "header" ] [ 
+        ,   div [ class "game-container" ] [ renderGame model ]
+        ]
+
+renderGame : Model -> Html Msg
+renderGame model =
+    div [] [
+        renderHeader model
+    ,   div [ class "matrix" ] ((Array.indexedMap renderRow model.matrix) |> Array.toList)
+    ,   renderGameEndedOverlay model
+    ]
+
+renderHeader: Model -> Html Msg
+renderHeader model = 
+    div [ class "header" ] [ 
                 text (
                     "Circle " 
                     ++ String.fromInt(model.pointsCircle)
@@ -168,21 +189,17 @@ view model =
                     ++ " Cross"
                 ) 
             ]
-        ,   div [ class "game-container" ] [ renderGame model ]
-        ]
 
-renderGame : Model -> Html Msg
-renderGame model =
-    div [] [
-        div [ class "matrix" ] ((Array.indexedMap renderRow model.matrix) |> Array.toList)
-    ,   renderWinenrOverlay model
-    ]
-
-renderWinenrOverlay: Model -> Html Msg 
-renderWinenrOverlay model = 
+renderGameEndedOverlay: Model -> Html Msg 
+renderGameEndedOverlay model = 
     if model.state /= Playing then
         (div [ class "winner-overlay" ] [ 
             case model.state of 
+                Draw -> 
+                    div [ class "winner-title" ] [ 
+                        text "Draw"
+                    ,   renderRestartButton model
+                    ]
                 Winner(CirclePlayer) ->
                     div [ class "winner-title" ] [ 
                         text "Circle Wins" 
@@ -193,7 +210,7 @@ renderWinenrOverlay model =
                         text "Cross wins"
                     ,   renderRestartButton model
                     ]
-                _ ->
+                Playing ->
                     text ""
         ])
     else
