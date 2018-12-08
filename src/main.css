@@ -27,24 +27,58 @@ body {
   width: 600px;
 }
 
-.matrix-container {
+.game-container {
   display: flex;
   flex-direction: column;
+  position: relative;
 }
 
-.matrix-container .row {
+.winner-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border: 0;
+  text-align: center;
+  font-size: 50px;
+  background-color: rgba(0,0,0,0.7);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.winner-overlay .btn {
+  width: 100%;
+  height: 50px;
+  padding: 0;
+  font-size: 22px;
+  color: white;
+  text-align: center;
+  background: #6DBCDB;
+  border: 0;
+  cursor: pointer;
+}
+
+.winner-overlay .btn:focus {
+  outline: none;
+  border: none;
+}
+
+.game-container .row {
   display: flex;
   flex: 1;
   flex-direction: row;
 }
 
-.matrix-container .row {
+.game-container .row {
   display: flex;
   flex: 1;
   flex-direction: row;
 }
 
-.matrix-container .row .cell {
+.game-container .row .cell {
   flex: 1;
   height: 200px;
   margin: 10px;
@@ -57,21 +91,21 @@ body {
   cursor: pointer;
 }
 
-.matrix-container .row .cell:hover {
+.game-container .row .cell:hover {
   background: #fff;
 }
 
-.matrix-container .row .marked {
+.game-container .row .marked {
   cursor: not-allowed;
   pointer-events: none;
 }
 
-.matrix-container .row .marked-cross, .matrix-container .row .marked-cross:hover {
+.game-container .row .marked-cross, .game-container .row .marked-cross:hover {
   background: #FC4349;
   border-color: #FC4349;
 }
 
-.matrix-container .row .marked-circle, .matrix-container .row .marked-circle:hover {
+.game-container .row .marked-circle, .game-container .row .marked-circle:hover {
   background: #2C3E50;
   border-color: #2C3E50;
 }
