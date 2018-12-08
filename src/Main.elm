@@ -159,7 +159,15 @@ view : Model -> Html Msg
 view model =
     div [ class "application-container" ]
         [   h1 [ class "title" ] [ text "Tic Tac Toe" ]
-        ,   div [] [ text ( String.fromInt(model.pointsCircle) ++ " - " ++ String.fromInt(model.pointsCross) ) ]
+        ,   div [ class "header" ] [ 
+                text (
+                    "Circle " 
+                    ++ String.fromInt(model.pointsCircle)
+                    ++ " - " 
+                    ++ String.fromInt(model.pointsCross) 
+                    ++ " Cross"
+                ) 
+            ]
         ,   div [ class "game-container" ] [ renderGame model ]
         ]
 
