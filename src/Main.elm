@@ -12,7 +12,7 @@ import Html.Events exposing (onClick)
 
 type Player = CrossPlayer | CirclePlayer
 type Square = Empty | Marked(Player)
-type GameState = Playing | Winner(Player) | Draw
+type GameState = ShowMenu | Playing | Winner(Player) | Draw
 
 emptyMatrix = Array.fromList([
                 [Empty, Empty, Empty] |> Array.fromList,
@@ -33,7 +33,7 @@ type alias Model =
 init : ( Model, Cmd Msg )
 init =
     ( {
-        state = Playing,
+        state = ShowMenu,
         current = CirclePlayer,
         pointsCross = 0,
         pointsCircle = 0,
@@ -46,7 +46,7 @@ init =
 
 
 type Msg
-    = NoOp | Mark(Int, Int) | Restart
+    = NoOp | Mark(Int, Int) | Restart | StartSinglePlayer
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -72,6 +72,10 @@ update msg model =
                 current = if model.state == Winner(CrossPlayer) then CirclePlayer else CrossPlayer,
                 state = Playing
             }, Cmd.none )
+        StartSinglePlayer ->
+            ({
+                model | state = Playing
+            }, Cmd.none)
         NoOp -> 
             ( model, Cmd.none )
 
@@ -172,10 +176,27 @@ view model =
 
 renderGame : Model -> Html Msg
 renderGame model =
-    div [] [
-        renderHeader model
-    ,   div [ class "matrix" ] ((Array.indexedMap renderRow model.matrix) |> Array.toList)
-    ,   renderGameEndedOverlay model
+    case model.state of 
+        ShowMenu ->
+            renderMenu model
+        _ ->
+            div [] [
+                renderHeader model
+            ,   div [ class "matrix" ] ((Array.indexedMap renderRow model.matrix) |> Array.toList)
+            ,   renderGameEndedOverlay model
+            ]
+
+renderMenu : Model -> Html Msg
+renderMenu model = 
+    div [ class "menu-container" ] [
+        div [ class "menu-title" ] [ text "Menu" ]
+    ,   div [ class "actions-container" ] [
+            button [ 
+                class "btn menu-btn" 
+            ,   onClick StartSinglePlayer 
+            ] [ text "Single Player" ]
+        ,   button [ class "btn menu-btn" ] [ text "Multiplayer" ]
+        ]
     ]
 
 renderHeader: Model -> Html Msg
@@ -207,6 +228,8 @@ renderGameEndedOverlay model =
                         text ((playerName player model) ++ " Wins")
                     ,   renderRestartButton model
                     ]
+                ShowMenu ->
+                    text ""
                 Playing ->
                     text ""
         ])
