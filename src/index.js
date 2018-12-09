@@ -11,7 +11,7 @@ var app = Elm.Main.init({node: node, flags: {
     roomId: urlParams.get("room") || "",
     oponentName: urlParams.get("playerName") || "",
 }});
-var ws = new WebSocket("ws://localhost:8080/ws");
+var ws = new WebSocket("ws://game-server.sebestyen.me/ws");
 
 ws.onmessage = function(message) {
     console.log(`elm-outgoing: ${message}`);
