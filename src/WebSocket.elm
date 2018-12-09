@@ -1,4 +1,4 @@
-module WebSocket exposing ( createRoom, decodeMesage )
+module WebSocket exposing ( createRoom, joinRoom, decodeMesage )
 
 import Json.Encode as Encode
 import Json.Decode as Decode
@@ -24,6 +24,15 @@ createRoom playerName =
   Encode.object
         [ ( "eventType", Encode.string "create" )
         , ( "playerName", Encode.string playerName )
+        ]
+  |> Encode.encode 0
+
+joinRoom : String -> String -> String
+joinRoom roomId playerName =
+  Encode.object
+        [ ( "eventType", Encode.string "join" )
+        , ( "playerName", Encode.string playerName )
+        , ( "room", Encode.string roomId )
         ]
   |> Encode.encode 0
 

@@ -17,6 +17,7 @@ type GameMode = SinglePlayer | Multiplayer
 type GameState = 
     ShowMenu 
     | CreatingRoom
+    | JoiningRoom
     | WaitingOnotherPlayer 
     | Playing 
     | Winner(Player) 
@@ -38,21 +39,30 @@ type alias Model =
         oponentName: String,
         gameMode: GameMode,
         roomId: String,
+        host: String,
         matrix: Array.Array(Array.Array(Square))
     }
 
+type alias Flags =
+    {
+        host: String,
+        joiningRoom: Bool,
+        roomId: String,
+        oponentName: String
+    }
 
-init : ( Model, Cmd Msg )
-init =
+init : Flags -> ( Model, Cmd Msg )
+init flags =
     ( {
-        state = ShowMenu,
-        gameMode = SinglePlayer,
-        current = CirclePlayer,
+        state = if flags.joiningRoom then JoiningRoom else ShowMenu,
+        gameMode = if flags.joiningRoom then Multiplayer else SinglePlayer,
+        current = if flags.joiningRoom then CrossPlayer else CirclePlayer,
         pointsCross = 0,
         pointsCircle = 0,
         playerName = "",
-        oponentName= "",
-        roomId = "",
+        oponentName= flags.oponentName,
+        roomId = flags.roomId,
+        host = flags.host,
         matrix = emptyMatrix
     }, Cmd.none )
 
@@ -68,7 +78,9 @@ type Msg
     | StartSinglePlayer 
     | WebsocketIn String
     | CreateRoom
+    | JoinRoom
     | OnPlayerName String
+    | CopyJoinUrl
     | StartMultiplayer
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -108,6 +120,8 @@ update msg model =
             )
         CreateRoom ->
             ( { model | state = CreatingRoom }, websocketOut ( WebSocket.createRoom model.playerName ) )
+        JoinRoom ->
+            ( { model | state = Playing }, websocketOut ( WebSocket.joinRoom model.roomId model.playerName ) )
         WebsocketIn(wsMsg) ->
             let 
                 socketEvent = (WebSocket.decodeMesage wsMsg)
@@ -119,6 +133,8 @@ update msg model =
                         ({ model | state = Playing, oponentName = socketEvent.playerName }, Cmd.none)
                     _ ->
                         ( model, Cmd.none )
+        CopyJoinUrl -> 
+            (model, copy (joinRoomUrl model))
         NoOp -> 
             ( model, Cmd.none )
 
@@ -222,6 +238,8 @@ renderGame model =
     case model.state of 
         ShowMenu ->
             renderMenu model
+        JoiningRoom -> 
+            renderJoiningRoom model
         CreatingRoom ->
             renderRoomCreating model
         WaitingOnotherPlayer -> 
@@ -233,6 +251,16 @@ renderGame model =
             ,   renderGameEndedOverlay model
             ]
 
+renderJoiningRoom : Model -> Html Msg
+renderJoiningRoom model =
+    div [ class "menu-container" ] [
+                div [ class "menu-title" ] [ text "Enter Name" ]
+            ,   div [ class "actions-container" ] [
+                    input [ type_ "text", placeholder "Enter your name", onInput OnPlayerName ] []
+                ,   button [ class "btn menu-btn", onClick JoinRoom ] [ text "Join" ]
+            ]
+        ]
+
 renderRoomCreating : Model -> Html Msg
 renderRoomCreating model =
     div [ class "menu-container" ] [
@@ -243,9 +271,11 @@ renderWaitingScreen : Model -> Html Msg
 renderWaitingScreen model = 
     div [ class "menu-container" ] [
         div [ class "menu-title" ] [ text "Room created" ]
-    ,   div [ class "menu-p" ] [  text  "room id" ]
-    ,   div [ class "menu-p" ] [  text  model.roomId ]
-    ,   div [ class "menu-p" ] [  text  "Waiting another player to join" ]
+    ,   div [ class "menu-p" ] [  text  "Waiting another player to join"  ]
+    ,   div [ class "menu-p" ] [  text  "send the url to the player you want to play with." ]
+    ,   div [ class "actions-container" ] [
+            button [ class "btn menu-btn", onClick CopyJoinUrl ] [ text "Copy Join Url" ]
+    ]
     ]
 
 renderMenu : Model -> Html Msg
@@ -350,10 +380,15 @@ playerName player model =
         CrossPlayer -> 
             if model.gameMode == SinglePlayer then "Cross" else model.oponentName
 
+joinRoomUrl : Model -> String
+joinRoomUrl model = 
+    model.host ++ "?room=" ++ model.roomId ++ "&playerName=" ++ model.playerName 
+
 ---- PORTS ----
 
 port websocketIn : (String -> msg) -> Sub msg
 port websocketOut : String -> Cmd msg
+port copy :  String -> Cmd msg
         
 
 ---- PROGRAM ----
@@ -363,11 +398,11 @@ subscriptions model =
     websocketIn WebsocketIn
 
 
-main : Program () Model Msg
+main :Program Flags Model Msg
 main =
     Browser.element
         { view = view
-        , init = \_ -> init
+        , init = \f -> (init f)
         , update = update
         , subscriptions = subscriptions
         }

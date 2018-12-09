@@ -3,7 +3,14 @@ import { Elm } from './Main.elm';
 import registerServiceWorker from './registerServiceWorker';
 
 var node = document.getElementById("root");
-var app = Elm.Main.init({node: node});
+var host = `${location.protocol}//${location.host}`;
+var urlParams = new URLSearchParams(window.location.search);
+var app = Elm.Main.init({node: node, flags: { 
+    host: host,
+    joiningRoom: !!urlParams.get("room"),
+    roomId: urlParams.get("room") || "",
+    oponentName: urlParams.get("playerName") || "",
+}});
 var ws = new WebSocket("ws://localhost:8080/ws");
 
 ws.onmessage = function(message) {
@@ -14,6 +21,15 @@ ws.onmessage = function(message) {
 app.ports.websocketOut.subscribe(function(msg) { 
     console.log(`elm-incoming: ${msg}`);
     ws.send(msg); 
+});
+
+app.ports.copy.subscribe((str) => {
+  const el = document.createElement('textarea');
+  el.value = str;
+  document.body.appendChild(el);
+  el.select();
+  document.execCommand('copy');
+  document.body.removeChild(el);
 });
 
 registerServiceWorker();
