@@ -3,7 +3,7 @@ import { Elm } from './Main.elm';
 import registerServiceWorker from './registerServiceWorker';
 
 var node = document.getElementById("root");
-var host = `${location.protocol}//${location.host}`;
+var host = location.href;
 var urlParams = new URLSearchParams(window.location.search);
 var app = Elm.Main.init({node: node, flags: { 
     host: host,
@@ -11,7 +11,7 @@ var app = Elm.Main.init({node: node, flags: {
     roomId: urlParams.get("room") || "",
     oponentName: urlParams.get("playerName") || "",
 }});
-var ws = new WebSocket("ws://game-server.sebestyen.me/ws");
+var ws = new WebSocket("wss://game-server.sebestyen.me/ws");
 
 ws.onmessage = function(message) {
     console.log(`elm-outgoing: ${message}`);
