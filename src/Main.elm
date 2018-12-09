@@ -38,6 +38,7 @@ type alias Model =
         playerName: String,
         oponentName: String,
         gameMode: GameMode,
+        playingAs: Player,
         roomId: String,
         host: String,
         roomCreator: Bool,
@@ -57,7 +58,8 @@ init flags =
     ( {
         state = if flags.joiningRoom then JoiningRoom else ShowMenu,
         gameMode = if flags.joiningRoom then Multiplayer else SinglePlayer,
-        current = if flags.joiningRoom then CirclePlayer else CrossPlayer,
+        current = CrossPlayer,
+        playingAs =  if flags.joiningRoom then CirclePlayer else CrossPlayer,
         roomCreator = if flags.joiningRoom then False else True,
         pointsCross = 0,
         pointsCircle = 0,
@@ -89,25 +91,30 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of 
         Mark(x, y) ->
-            let 
-                nextMatrix = (markCell x y model.matrix model.current)
-                nextGameState = computeNextState nextMatrix
-            in
-                ({
-                    model | 
-                    matrix = nextMatrix,
-                    pointsCross = if nextGameState == Winner(CrossPlayer) then model.pointsCross + 1 else model.pointsCross,
-                    pointsCircle = if nextGameState == Winner(CirclePlayer) then model.pointsCircle + 1 else model.pointsCircle,
-                    state = nextGameState,
-                    current = if model.current == CirclePlayer then CrossPlayer else CirclePlayer    
-                }, Cmd.none )
+            (
+                (
+                    if model.current == model.playingAs || model.gameMode /= Multiplayer 
+                    then ( computeStateAfterMark x y model) 
+                    else model
+                )
+            ,   (
+                    if model.gameMode == Multiplayer && model.current == model.playingAs 
+                    then websocketOut (WebSocket.markSquare x y model.roomId )
+                    else Cmd.none
+                )
+            )
         Restart ->
-            ({
-                model |
-                matrix = emptyMatrix,
-                current = if model.state == Winner(CrossPlayer) then CirclePlayer else CrossPlayer,
-                state = Playing
-            }, Cmd.none )
+            (
+                {
+                    model |
+                    matrix = emptyMatrix,
+                    current = if model.state == Winner(CrossPlayer) then CirclePlayer else CrossPlayer,
+                    state = Playing
+                }
+            ,   (
+                    if ( model.gameMode == Multiplayer ) then websocketOut (WebSocket.restart model.roomId ) else Cmd.none
+                )   
+            )
         StartSinglePlayer ->
             ({
                 model | state = Playing, gameMode = SinglePlayer 
@@ -133,6 +140,20 @@ update msg model =
                         ({ model | roomId = socketEvent.room, state = WaitingOnotherPlayer }, Cmd.none )
                     "joined" ->
                         ({ model | state = Playing, oponentName = socketEvent.playerName }, Cmd.none)
+                    "data" ->
+                        case socketEvent.data of 
+                            "restart" -> 
+                                ( {
+                                    model |
+                                    matrix = emptyMatrix,
+                                    state = Playing
+                                }, Cmd.none )
+                            _ ->
+                                let 
+                                    x =  socketEvent.data |> String.split(",") |> Array.fromList |> Array.get 0 |> maybeStringToInt
+                                    y =  socketEvent.data |> String.split(",") |> Array.fromList |> Array.get 1 |> maybeStringToInt
+                                in
+                                    ( (computeStateAfterMark x y model), Cmd.none )
                     _ ->
                         ( model, Cmd.none )
         CopyJoinUrl -> 
@@ -140,6 +161,21 @@ update msg model =
         NoOp -> 
             ( model, Cmd.none )
 
+
+computeStateAfterMark: Int -> Int -> Model -> Model
+computeStateAfterMark x y model = 
+    let 
+        nextMatrix = (markCell x y model.matrix model.current)
+        nextGameState = computeNextState nextMatrix
+    in
+        {
+            model | 
+            matrix = nextMatrix,
+            pointsCross = if nextGameState == Winner(CrossPlayer) then model.pointsCross + 1 else model.pointsCross,
+            pointsCircle = if nextGameState == Winner(CirclePlayer) then model.pointsCircle + 1 else model.pointsCircle,
+            state = nextGameState,
+            current = if model.current == CirclePlayer then CrossPlayer else CirclePlayer    
+        }
 
 markCell: Int -> Int -> Array.Array(Array.Array(Square)) -> Player -> Array.Array(Array.Array(Square))
 markCell x y matrix player =
@@ -209,6 +245,18 @@ checkRow row player =
     in
         (Array.length filter) == 3
 
+maybeStringToInt: Maybe(String) -> Int
+maybeStringToInt data =
+    case data of 
+        Just value ->
+            case value |> String.toInt of 
+                Just integer ->
+                    integer
+                Nothing ->
+                    0
+        Nothing ->
+            0
+
 maybeToJust: Maybe(Square) ->  Square
 maybeToJust square =
     case square of 
@@ -257,7 +305,7 @@ renderGame model =
 renderJoiningRoom : Model -> Html Msg
 renderJoiningRoom model =
     div [ class "menu-container" ] [
-                div [ class "menu-title" ] [ text "Enter Name" ]
+                div [ class "menu-title" ] [ text ( "Joining " ++ model.oponentName ) ]
             ,   div [ class "actions-container" ] [
                     input [ type_ "text", placeholder "Enter your name", onInput OnPlayerName ] []
                 ,   button [ class "btn menu-btn", onClick JoinRoom ] [ text "Join" ]
@@ -328,9 +376,9 @@ renderFooter model =
 
 nextTurn: Model -> String
 nextTurn model = 
-    if ( model.gameMode == Multiplayer && model.roomCreator == True && model.current == CrossPlayer ) then
+    if ( model.gameMode == Multiplayer && model.current == model.playingAs ) then
         "Your turn"
-    else if ( model.gameMode == Multiplayer && model.roomCreator == False && model.current == CirclePlayer ) then
+    else if ( model.gameMode == Multiplayer && model.current /= model.playingAs ) then
         "Oponent turn"
     else if (model.current == CirclePlayer) then
         "Circle turn"
@@ -397,9 +445,19 @@ playerName : Player -> Model -> String
 playerName player model =
     case player of 
         CirclePlayer ->
-            if model.gameMode == SinglePlayer then "Circle" else model.playerName
+            if model.gameMode == SinglePlayer 
+            then "Circle" 
+            else if model.roomCreator == True then 
+                model.oponentName
+            else
+                model.playerName
         CrossPlayer -> 
-            if model.gameMode == SinglePlayer then "Cross" else model.oponentName
+            if model.gameMode == SinglePlayer 
+            then "Cross"
+            else if model.roomCreator == True then 
+                model.playerName
+            else
+                model.oponentName
 
 joinRoomUrl : Model -> String
 joinRoomUrl model = 

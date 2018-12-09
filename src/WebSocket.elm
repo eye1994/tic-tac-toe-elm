@@ -1,15 +1,21 @@
-module WebSocket exposing ( createRoom, joinRoom, decodeMesage )
+module WebSocket exposing ( createRoom, markSquare, joinRoom, decodeMesage, restart, GameData )
 
 import Json.Encode as Encode
 import Json.Decode as Decode
 
 type alias SocketEvent =
-    {
-        eventType: String
-      , playerName: String
-      , room: String
-      , data: String
-    }
+  {
+      eventType: String
+    , playerName: String
+    , room: String
+    , data: String
+  }
+
+type alias GameData =
+  {
+      enventType: String
+    , data: String
+  }
 
 emptySocketEvent = 
   {
@@ -24,6 +30,24 @@ createRoom playerName =
   Encode.object
         [ ( "eventType", Encode.string "create" )
         , ( "playerName", Encode.string playerName )
+        ]
+  |> Encode.encode 0
+
+markSquare: Int -> Int -> String -> String
+markSquare x y roomId = 
+  Encode.object
+        [ ( "eventType", Encode.string "data" )
+        , ( "room", Encode.string roomId )
+        , ( "data", Encode.string (String.fromInt(x) ++ "," ++ String.fromInt(y)) )
+        ]
+  |> Encode.encode 0
+
+restart: String -> String
+restart roomId =
+  Encode.object
+        [ ( "eventType", Encode.string "data" )
+        , ( "room", Encode.string roomId ) 
+        , ( "data", Encode.string "restart" )
         ]
   |> Encode.encode 0
 
