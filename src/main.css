@@ -16,13 +16,25 @@ body {
   font-family: 'Titillium Web', sans-serif;
 }
 
+input[type="text"] {
+  height: 40px;
+  width: 100%;
+  box-sizing: border-box;
+  font-size: 18px;
+  padding-left: 15px;
+  background: #fff;
+  border: none;
+  outline: none;
+  margin-bottom: 10px;
+}
+
 h1.title {
   text-align: center;
   font-size: 58px;
   padding: 0px;
   margin-bottom: 20px;
   margin-top: -90px;
-  color: #113A52;
+  color: rgba(17, 58, 82, 0.8);
   text-shadow: 3px 3px 0px rgba(0,0,0,0.2);
 }
 

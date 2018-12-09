@@ -1,18 +1,26 @@
-module Main exposing (..)
+port module Main exposing (main)
 
 import Browser
-import Html exposing (Html, text, div, h1, img, button)
-import Html.Attributes exposing (src, class)
+import Html exposing (Html, text, div, h1, img, button, input)
+import Html.Attributes exposing (src, class, placeholder, type_)
 import Array
 import List
-import Html.Events exposing (onClick)
-
+import Html.Events exposing (onClick, onInput)
+import Json.Encode as Encode
+import WebSocket
 
 ---- MODEL ----
 
 type Player = CrossPlayer | CirclePlayer
 type Square = Empty | Marked(Player)
-type GameState = ShowMenu | Playing | Winner(Player) | Draw
+type GameMode = SinglePlayer | Multiplayer
+type GameState = 
+    ShowMenu 
+    | CreatingRoom
+    | WaitingOnotherPlayer 
+    | Playing 
+    | Winner(Player) 
+    | Draw
 
 emptyMatrix = Array.fromList([
                 [Empty, Empty, Empty] |> Array.fromList,
@@ -26,6 +34,10 @@ type alias Model =
         state: GameState,
         pointsCross: Int,
         pointsCircle: Int,
+        playerName: String,
+        oponentName: String,
+        gameMode: GameMode,
+        roomId: String,
         matrix: Array.Array(Array.Array(Square))
     }
 
@@ -34,9 +46,13 @@ init : ( Model, Cmd Msg )
 init =
     ( {
         state = ShowMenu,
+        gameMode = SinglePlayer,
         current = CirclePlayer,
         pointsCross = 0,
         pointsCircle = 0,
+        playerName = "",
+        oponentName= "",
+        roomId = "",
         matrix = emptyMatrix
     }, Cmd.none )
 
@@ -46,8 +62,14 @@ init =
 
 
 type Msg
-    = NoOp | Mark(Int, Int) | Restart | StartSinglePlayer
-
+    = NoOp 
+    | Mark(Int, Int) 
+    | Restart 
+    | StartSinglePlayer 
+    | WebsocketIn String
+    | CreateRoom
+    | OnPlayerName String
+    | StartMultiplayer
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
@@ -64,7 +86,7 @@ update msg model =
                     pointsCircle = if nextGameState == Winner(CirclePlayer) then model.pointsCircle + 1 else model.pointsCircle,
                     state = nextGameState,
                     current = if model.current == CirclePlayer then CrossPlayer else CirclePlayer    
-                }, Cmd.none)
+                }, Cmd.none )
         Restart ->
             ({
                 model |
@@ -74,8 +96,29 @@ update msg model =
             }, Cmd.none )
         StartSinglePlayer ->
             ({
-                model | state = Playing
+                model | state = Playing, gameMode = SinglePlayer 
             }, Cmd.none)
+        StartMultiplayer -> 
+            (
+                { model | gameMode = Multiplayer }, Cmd.none
+            )
+        OnPlayerName name -> 
+             (
+                { model | playerName = name }, Cmd.none
+            )
+        CreateRoom ->
+            ( { model | state = CreatingRoom }, websocketOut ( WebSocket.createRoom model.playerName ) )
+        WebsocketIn(wsMsg) ->
+            let 
+                socketEvent = (WebSocket.decodeMesage wsMsg)
+            in
+                case socketEvent.eventType of 
+                    "created" ->
+                        ({ model | roomId = socketEvent.room, state = WaitingOnotherPlayer }, Cmd.none )
+                    "joined" ->
+                        ({ model | state = Playing, oponentName = socketEvent.playerName }, Cmd.none)
+                    _ ->
+                        ( model, Cmd.none )
         NoOp -> 
             ( model, Cmd.none )
 
@@ -179,6 +222,10 @@ renderGame model =
     case model.state of 
         ShowMenu ->
             renderMenu model
+        CreatingRoom ->
+            renderRoomCreating model
+        WaitingOnotherPlayer -> 
+            renderWaitingScreen model
         _ ->
             div [] [
                 renderHeader model
@@ -186,18 +233,46 @@ renderGame model =
             ,   renderGameEndedOverlay model
             ]
 
+renderRoomCreating : Model -> Html Msg
+renderRoomCreating model =
+    div [ class "menu-container" ] [
+        div [ class "menu-title" ] [ text "Creating room .. " ]
+    ]
+
+renderWaitingScreen : Model -> Html Msg 
+renderWaitingScreen model = 
+    div [ class "menu-container" ] [
+        div [ class "menu-title" ] [ text "Room created" ]
+    ,   div [ class "menu-p" ] [  text  "room id" ]
+    ,   div [ class "menu-p" ] [  text  model.roomId ]
+    ,   div [ class "menu-p" ] [  text  "Waiting another player to join" ]
+    ]
+
 renderMenu : Model -> Html Msg
 renderMenu model = 
-    div [ class "menu-container" ] [
-        div [ class "menu-title" ] [ text "Menu" ]
-    ,   div [ class "actions-container" ] [
-            button [ 
-                class "btn menu-btn" 
-            ,   onClick StartSinglePlayer 
-            ] [ text "Single Player" ]
-        ,   button [ class "btn menu-btn" ] [ text "Multiplayer" ]
-        ]
-    ]
+    case model.gameMode of
+        Multiplayer ->
+             div [ class "menu-container" ] [
+                div [ class "menu-title" ] [ text "Enter Name" ]
+            ,   div [ class "actions-container" ] [
+                    input [ type_ "text", placeholder "Enter your name", onInput OnPlayerName ] []
+                ,   button [ class "btn menu-btn", onClick CreateRoom ] [ text "Start" ]
+            ]
+            ]
+        _ ->
+            div [ class "menu-container" ] [
+                div [ class "menu-title" ] [ text "Menu" ]
+            ,   div [ class "actions-container" ] [
+                    button [ 
+                        class "btn menu-btn" 
+                    ,   onClick StartSinglePlayer 
+                    ] [ text "Single Player" ]
+                ,   button [ 
+                        class "btn menu-btn" 
+                    ,   onClick StartMultiplayer 
+                    ] [ text "Multiplayer" ]
+                ]
+            ]
 
 renderHeader: Model -> Html Msg
 renderHeader model = 
@@ -228,9 +303,7 @@ renderGameEndedOverlay model =
                         text ((playerName player model) ++ " Wins")
                     ,   renderRestartButton model
                     ]
-                ShowMenu ->
-                    text ""
-                Playing ->
+                _ ->
                     text ""
         ])
     else
@@ -273,12 +346,21 @@ playerName : Player -> Model -> String
 playerName player model =
     case player of 
         CirclePlayer ->
-            "Circle"
+            if model.gameMode == SinglePlayer then "Circle" else model.playerName
         CrossPlayer -> 
-            "Cross"
+            if model.gameMode == SinglePlayer then "Cross" else model.oponentName
+
+---- PORTS ----
+
+port websocketIn : (String -> msg) -> Sub msg
+port websocketOut : String -> Cmd msg
         
 
 ---- PROGRAM ----
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    websocketIn WebsocketIn
 
 
 main : Program () Model Msg
@@ -287,5 +369,5 @@ main =
         { view = view
         , init = \_ -> init
         , update = update
-        , subscriptions = always Sub.none
+        , subscriptions = subscriptions
         }
