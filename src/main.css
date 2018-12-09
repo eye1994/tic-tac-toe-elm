@@ -158,6 +158,13 @@ h1.title {
   text-shadow: 3px 3px 0px rgba(0,0,0,0.2);
 }
 
+.footer {
+  background: #113A52;
+  color: #fff;
+  width: 100%;
+  text-align: center;
+}
+
 .game-container .row .cell {
   flex: 1;
   height: 150px;

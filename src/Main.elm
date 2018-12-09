@@ -40,6 +40,7 @@ type alias Model =
         gameMode: GameMode,
         roomId: String,
         host: String,
+        roomCreator: Bool,
         matrix: Array.Array(Array.Array(Square))
     }
 
@@ -56,7 +57,8 @@ init flags =
     ( {
         state = if flags.joiningRoom then JoiningRoom else ShowMenu,
         gameMode = if flags.joiningRoom then Multiplayer else SinglePlayer,
-        current = if flags.joiningRoom then CrossPlayer else CirclePlayer,
+        current = if flags.joiningRoom then CirclePlayer else CrossPlayer,
+        roomCreator = if flags.joiningRoom then False else True,
         pointsCross = 0,
         pointsCircle = 0,
         playerName = "",
@@ -248,6 +250,7 @@ renderGame model =
             div [] [
                 renderHeader model
             ,   div [ class "matrix" ] ((Array.indexedMap renderRow model.matrix) |> Array.toList)
+            ,   renderFooter model
             ,   renderGameEndedOverlay model
             ]
 
@@ -317,6 +320,24 @@ renderHeader model =
                     ++ (playerName CrossPlayer model)
                 ) 
             ]
+renderFooter: Model -> Html Msg
+renderFooter model = 
+    div [ class "footer" ] [
+        text ( nextTurn model )
+    ]
+
+nextTurn: Model -> String
+nextTurn model = 
+    if ( model.gameMode == Multiplayer && model.roomCreator == True && model.current == CrossPlayer ) then
+        "Your turn"
+    else if ( model.gameMode == Multiplayer && model.roomCreator == False && model.current == CirclePlayer ) then
+        "Oponent turn"
+    else if (model.current == CirclePlayer) then
+        "Circle turn"
+    else if (model.current == CrossPlayer) then
+        "Cross turn"
+    else 
+        ""
 
 renderGameEndedOverlay: Model -> Html Msg 
 renderGameEndedOverlay model = 
