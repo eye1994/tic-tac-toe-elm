@@ -146,6 +146,7 @@ update msg model =
                                 ( {
                                     model |
                                     matrix = emptyMatrix,
+                                    current = if model.state == Winner(CrossPlayer) then CirclePlayer else CrossPlayer,
                                     state = Playing
                                 }, Cmd.none )
                             _ ->
